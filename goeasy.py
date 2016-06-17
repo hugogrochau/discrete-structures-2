@@ -28,6 +28,9 @@ class Edge:
 def read_input():
     # number of zones and stations
     Z, S = [int(x) for x in str.split(sys.stdin.readline())]
+    if Z == 0 and S == 0:
+        return False
+
     travelMap = Map(Z, S)
 
     # for each zone
@@ -66,8 +69,11 @@ def cheapest_path(travelMap):
         nonlocal lowest_cost_path
         nonlocal lowest_cost_travel_log
 
+        if cost > lowest_cost:
+            return
+
         path.append(current.station)
-        travel_log.append((current.station + 1, "B" if bus else "T", line + 1, cost))
+        travel_log.append((current.station + 1, "Ônibus" if bus else "Trem", line + 1, cost))
 
         if current.station == end:
             if cost < lowest_cost:
@@ -94,11 +100,6 @@ def cheapest_path(travelMap):
             else:
                 find_path(toNode, end, cost, path[:], travel_log[:], edge.bus, edge.line)
 
-    print("Zones = {}".format(travelMap.zones))
-    print("Stations = {}".format(travelMap.stations))
-    print("Start = {}".format(travelMap.start + 1))
-    print("End = {}".format(travelMap.end + 1))
-
     lowest_cost = math.inf
     lowest_cost_path = []
     lowest_cost_travel_log = []
@@ -109,14 +110,10 @@ def cheapest_path(travelMap):
 
 
 travelMap = read_input()
-print(cheapest_path(travelMap))
-# start = 0
-# end = 4
-# connections = [
-#     [1, 3, 4],
-#     [0, 2, 4],
-#     [1, 4],
-#     [0],
-#     [0, 1, 2]
-# ]
-# print(find_all_paths(connections, start, end))
+while (travelMap):
+    log = cheapest_path(travelMap)
+    print("Passageiro iniciou sua viagem pela estação {}".format(log[0][0]))
+    for entry in log[1:]:
+        print("Passageiro chegou na estação {} pela linha de {} #{}".format(entry[0], entry[1], entry[2]))
+    print("Custo total: {} UTs".format(log[-1][3]))
+    travelMap = read_input()
