@@ -49,6 +49,7 @@ def read_input():
             # create edges for each step of route in both ways
             travelMap.nodes[route[i]].edges.append(Edge(route[i+1], False, t))
             travelMap.nodes[route[-i-1]].edges.append(Edge(route[-i-2], False, t))
+
     # bus routes
     for b in range(B):
         route = [int(x) - 1 for x in str.split(sys.stdin.readline())[1:]]
@@ -57,6 +58,7 @@ def read_input():
             travelMap.nodes[route[i]].edges.append(Edge(route[i+1], True, b))
             travelMap.nodes[route[-i-1]].edges.append(Edge(route[-i-2], True, b))
 
+    # start and end locations
     X, Y = [int(x) - 1 for x in str.split(sys.stdin.readline())]
     travelMap.start = X
     travelMap.end = Y
@@ -73,7 +75,7 @@ def cheapest_path(travelMap):
             return
 
         path.append(current.station)
-        travel_log.append((current.station + 1, "Ônibus" if bus else "Trem", line + 1, cost))
+        travel_log.append((current.station + 1, "Ônibus" if bus else "Trem", line + 1, cost, current.zone + 1))
 
         if current.station == end:
             if cost < lowest_cost:
@@ -112,8 +114,8 @@ def cheapest_path(travelMap):
 travelMap = read_input()
 while (travelMap):
     log = cheapest_path(travelMap)
-    print("Passageiro iniciou sua viagem pela estação {}".format(log[0][0]))
+    print("Passageiro iniciou sua viagem pela estação {} da zona {}".format(log[0][0], log[0][4]))
     for entry in log[1:]:
-        print("Passageiro chegou na estação {} pela linha de {} #{}".format(entry[0], entry[1], entry[2]))
+        print("Passageiro chegou na estação {} da zona {} pela linha de {} #{}".format(entry[0], entry[4], entry[1], entry[2]))
     print("Custo total: {} UTs".format(log[-1][3]))
     travelMap = read_input()
