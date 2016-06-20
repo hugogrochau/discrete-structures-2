@@ -2,9 +2,17 @@
 import sys
 import collections
 import math
+from collections import defaultdict, deque
+from pprint import pprint
+from enum import Enum
 
 
-class Map:
+class Transport(Enum):
+    bus = 1
+    train = 2
+
+
+class Graph:
     def __init__(self, zones, stations):
         self.zones = zones
         self.stations = stations
@@ -15,14 +23,31 @@ class Node:
     def __init__(self, station, zone):
         self.station = station
         self.zone = zone
-        self.edges = []
+        self.edges = set()
 
 
 class Edge:
-    def __init__(self, to, bus, line):
+    def __init__(self, to, cost, transport, line):
         self.to = to
-        self.bus = bus
+        self.cost = cost
+        self.transport = transport
         self.line = line
+
+
+def zone_change_cost(graph, route, start, end):
+    if (start > end):
+        tmp = start
+        start = end
+        end = tmp
+
+    current_zone = graph.nodes[route[start]].zone
+    total_cost = 0
+    for i in range(start, end + 1):
+        if graph.nodes[route[i]].zone != current_zone:
+            current_zone = graph.nodes[route[i]].zone
+            total_cost += 4
+
+    return total_cost
 
 
 def read_input():
@@ -31,13 +56,13 @@ def read_input():
     if Z == 0 and S == 0:
         return False
 
-    travelMap = Map(Z, S)
+    graph = Graph(Z, S)
 
     # for each zone
     for z in range(Z):
         # create a node for each station with its zone
         for s in [int(x) - 1 for x in str.split(sys.stdin.readline())[1:]]:
-            travelMap.nodes[s] = Node(s, z)
+            graph.nodes[s] = Node(s, z)
 
     # number of train and buses routes
     T, B = [int(x) for x in str.split(sys.stdin.readline())]
@@ -45,77 +70,91 @@ def read_input():
     # train routes
     for t in range(T):
         route = [int(x) - 1 for x in str.split(sys.stdin.readline())[1:]]
-        for i in range(len(route) - 1):
-            # create edges for each step of route in both ways
-            travelMap.nodes[route[i]].edges.append(Edge(route[i+1], False, t))
-            travelMap.nodes[route[-i-1]].edges.append(Edge(route[-i-2], False, t))
+        # add an edge for each pair of stations
+        for i in range(len(route)):
+            for j in range(len(route)):
+                if i != j:
+                    node_from = graph.nodes[route[i]]
+                    node_to = graph.nodes[route[j]]
+                    cost = zone_change_cost(graph, route, i, j)
+                    node_from.edges.add(Edge(node_to, cost, Transport.train, t))
+                    node_to.edges.add(Edge(node_from, cost, Transport.train, t))
 
     # bus routes
     for b in range(B):
         route = [int(x) - 1 for x in str.split(sys.stdin.readline())[1:]]
-        for i in range(len(route) - 1):
-            # create edges for each step of route in both ways
-            travelMap.nodes[route[i]].edges.append(Edge(route[i+1], True, b))
-            travelMap.nodes[route[-i-1]].edges.append(Edge(route[-i-2], True, b))
+        # add an edge for each pair of stations
+        for i in range(len(route)):
+            for j in range(len(route)):
+                if i != j:
+                    node_from = graph.nodes[route[i]]
+                    node_to = graph.nodes[route[j]]
+                    node_from.edges.add(Edge(node_to, 1, Transport.bus, b))
+                    node_to.edges.add(Edge(node_from, 1, Transport.bus, b))
 
     # start and end locations
     X, Y = [int(x) - 1 for x in str.split(sys.stdin.readline())]
-    travelMap.start = X
-    travelMap.end = Y
-    return travelMap
+    graph.start = X
+    graph.end = Y
+    return graph
 
 
-def cheapest_path(travelMap):
-    def find_path(current, end, cost, path=[], travel_log=[], bus=False, line=-1):
-        nonlocal lowest_cost
-        nonlocal lowest_cost_path
-        nonlocal lowest_cost_travel_log
+def dijkstra(graph, source):
+    costs = dict()
+    previous = dict()
+    edges = dict()
 
-        if cost > lowest_cost:
-            return
+    for node in graph.nodes:
+        costs[node] = float("inf")
+        previous[node] = None
+        edges[node] = None
 
-        path.append(current.station)
-        travel_log.append((current.station + 1, "Ônibus" if bus else "Trem", line + 1, cost, current.zone + 1))
+    costs[source] = 0
+    nodes = set(graph.nodes)
 
-        if current.station == end:
-            if cost < lowest_cost:
-                lowest_cost = cost
-                lowest_cost_path = path
-                lowest_cost_travel_log = travel_log
-            return
+    while len(nodes) > 0:
+        min_node = None
+        for node in nodes:
+            if node in costs:
+                if min_node is None:
+                    min_node = node
+                elif costs[node] < costs[min_node]:
+                    min_node = node
 
-        edges = [x for x in current.edges if x.to not in path]
-        if len(edges) == 0:
-            return
-        for edge in edges:
-            toNode = travelMap.nodes[edge.to]
-            cost_to_add = 0
-            # transfer from bus to bus of different line
-            if bus and edge.bus and (line != edge.line):
-                find_path(toNode, end, cost + 1, path[:], travel_log[:], True, edge.line)
-            # transfer from train to bus
-            elif not bus and edge.bus:
-                find_path(toNode, end, cost + 1, path[:], travel_log[:], True, edge.line)
-            # zone while choosing train change
-            elif not edge.bus and current.zone != toNode.zone:
-                find_path(toNode, end, cost + 4, path[:], travel_log[:], False, edge.line)
-            else:
-                find_path(toNode, end, cost, path[:], travel_log[:], edge.bus, edge.line)
+        if min_node is None:
+            break
 
-    lowest_cost = math.inf
-    lowest_cost_path = []
-    lowest_cost_travel_log = []
+        nodes.remove(min_node)
 
-    find_path(travelMap.nodes[travelMap.start], travelMap.end, 2)
+        if costs[min_node] == float('inf'):
+            break
 
-    return lowest_cost_travel_log
+        for edge in min_node.edges:
+            alt = costs[min_node] + edge.cost
+            if alt < costs[edge.to]:
+                costs[edge.to] = alt
+                previous[edge.to] = min_node
+                edges[edge.to] = edge
+    return previous, edges
 
+graph = read_input()
+previous, edges = dijkstra(graph, graph.nodes[graph.start])
 
-travelMap = read_input()
-while (travelMap):
-    log = cheapest_path(travelMap)
-    print("Passageiro iniciou sua viagem pela estação {} da zona {}".format(log[0][0], log[0][4]))
-    for entry in log[1:]:
-        print("Passageiro chegou na estação {} da zona {} pela linha de {} #{}".format(entry[0], entry[4], entry[1], entry[2]))
-    print("Custo total: {} UTs".format(log[-1][3]))
-    travelMap = read_input()
+s = []
+u = graph.nodes[graph.end]
+while previous[u]:
+    s.append((u, edges[u]))
+    u = previous[u]
+
+for step in s:
+    # print(edge.to.station)
+    print("Went to station {} with {} line {} with cost {}".format(step[0].station + 1, step[1].transport, step[1].line + 1, step[1].cost))
+
+# travelMap = read_input()
+# while (travelMap):
+#     log = cheapest_path(travelMap)
+#     print("Passageiro iniciou sua viagem pela estação {} da zona {}".format(log[0][0], log[0][4]))
+#     for entry in log[1:]:
+#         print("Passageiro chegou na estação {} da zona {} pela linha de {} #{}".format(entry[0], entry[4], entry[1], entry[2]))
+#     print("Custo total: {} UTs".format(log[-1][3]))
+#     travelMap = read_input()
