@@ -2,14 +2,15 @@
 import sys
 import collections
 import math
-from collections import defaultdict, deque
-from pprint import pprint
 from enum import Enum
 
 
 class Transport(Enum):
     bus = 1
     train = 2
+
+    def to_string(self):
+        return "Ônibus" if self.value is 1 else "Trem"
 
 
 class Graph:
@@ -52,7 +53,10 @@ def zone_change_cost(graph, route, start, end):
 
 def read_input():
     # number of zones and stations
-    Z, S = [int(x) for x in str.split(sys.stdin.readline())]
+    first_line = sys.stdin.readline()
+    while first_line.strip() is "":
+        first_line = sys.stdin.readline()
+    Z, S = [int(x) for x in str.split(first_line)]
     if Z == 0 and S == 0:
         return False
 
@@ -137,24 +141,23 @@ def dijkstra(graph, source):
                 edges[edge.to] = edge
     return previous, edges
 
+
+def cheapest_path(graph, a, b):
+    previous, edges = dijkstra(graph, a)
+    steps = []
+    node = b
+    while previous[node]:
+        steps.append((node, edges[node]))
+        node = previous[node]
+    return reversed(steps)
+
 graph = read_input()
-previous, edges = dijkstra(graph, graph.nodes[graph.start])
-
-s = []
-u = graph.nodes[graph.end]
-while previous[u]:
-    s.append((u, edges[u]))
-    u = previous[u]
-
-for step in s:
-    # print(edge.to.station)
-    print("Went to station {} with {} line {} with cost {}".format(step[0].station + 1, step[1].transport, step[1].line + 1, step[1].cost))
-
-# travelMap = read_input()
-# while (travelMap):
-#     log = cheapest_path(travelMap)
-#     print("Passageiro iniciou sua viagem pela estação {} da zona {}".format(log[0][0], log[0][4]))
-#     for entry in log[1:]:
-#         print("Passageiro chegou na estação {} da zona {} pela linha de {} #{}".format(entry[0], entry[4], entry[1], entry[2]))
-#     print("Custo total: {} UTs".format(log[-1][3]))
-#     travelMap = read_input()
+while (graph):
+    cost = 2
+    steps = cheapest_path(graph, graph.nodes[graph.start], graph.nodes[graph.end])
+    print("Passageiro iniciou sua viagem pela estação {} da zona {}".format(graph.start + 1, graph.nodes[graph.start].zone + 1))
+    for step in steps:
+        print("Passageiro chegou na estação {} da zona {} pela linha de {} #{}".format(step[0].station + 1, step[0].zone + 1, step[1].transport.to_string(), step[1].line + 1))
+        cost += step[1].cost
+    print("Custo total: {} UTs".format(cost))
+    graph = read_input()
