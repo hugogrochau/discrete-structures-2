@@ -10,7 +10,7 @@
 `T(s, U) | size(U) = 1`: O único caminho é entre `s` e ele mesmo, de custo 0
 
 ### TPI
-`T(s, U) -> T(s, U') | U' = U ∪ v`: Se sabemos todos os caminhos de menor custo entre `s` e cada vértice de `U`, ao adicionar `v`, basta achar o menor caminho entre `U` e `v`. Assim conseguimos o menor caminho entre `s` e `v`.
+`T(s, U) -> T(s, U') | U' = U ∪ v`: Se sabemos todos os caminhos de menor custo entre `s` e cada vértice de `U`, ao adicionar `v`, basta achar a aresta de menor custo entre `v` e qualquer vértice (ui) de `U`. Desse modo também conseguimos o menor caminho entre `s` e `v`: `s -> ui ∪ ui-> v`.
 
 ## Algorítimo
 
