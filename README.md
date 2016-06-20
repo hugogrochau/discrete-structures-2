@@ -1,59 +1,33 @@
 # T2 de Estruturas Discretas 2016.1
 
-## Authors
-* Hugo Grochau
-* Gabriel Maia
-
 # Questão 2
 
 ## Prova
-`T(start, finish, map<V, E>)` = É possível achar o todos os possíveis caminhos e seus custos entre start e finish pelo map.
+
+`T(s, U) | s ∈ U e U é o conjunto de vértices` = Conseguimos achar o menor caminho da vértice `s` para qualquer `u ∈ U`.
 
 ### TCB
-`T(start, finish, map<V, E>) | num_V = 1`: Estamos já no nosso destino, só existe um caminho e seu custo foi zero
+`T(s, U) | size(U) = 1`: O único caminho é entre `s` e ele mesmo, de custo 0
 
 ### TPI
-`T(start, finish, map<V, E>) | num_V = n -> T(start, finish, map<V, E>) | num_V = n+1`: Se sabemos todos os caminhos e seus custos de `T(start, finish, map) | num_V = n`, ao adicionar mais um nó (VN) precisamos pegar todos os caminhos que passam por nós visinhos de VN (VVs) e gerar novos caminhos a partir desses, calculando o custo adicional a partir das arestas entre os VVs e VN.
+`T(s, U) -> T(s, U') | U' = U ∪ v`: Se sabemos todos os caminhos de menor custo entre `s` e cada vértice de `U`, ao adicionar `v`, basta achar o menor caminho entre `U` e `v`. Assim conseguimos o menor caminho entre `s` e `v`.
 
 ## Algorítimo
 
-```
-Ao ler o input, um grafo é criado da seguinte maneira:
+Ao ler o input, um grafo não direcionado é criado da seguinte maneira:
 * Para cada estação um nó é criado guardando a zona e o número desta estação
-* Para cada conexão entre duas estações é criada uma aresta, guardando o número e tipo de linha (ônibus ou trem).
-Após terminar de montar o gráfico, inicie as seguintes váriaveis:
-* lowest_cost = INF
-* lowest_cost_path = []
+* Para cada par duas estações pertencentes à uma mesma linha é criada uma aresta com os seguintes dados:
+    * O custo: 1 se for uma linha de ônibus, e z*4 se for uma linha de trem z sendo o número de transferências de zonas entre essas duas estações
+    * O tipo de transporte: Podendo ser ônibus ou trem
+    * O número da linha
 
-Começando do nó (estação) inicial, executa-se o seguinte recursivamente:
+Em seguida o algoritimo de Dijkstra é rodado em cima desse grafo com o nó inicial sendo o da estação de partida
 
-Adicione o nó corrente ao caminho
+Fazemos um backtracking no output do Dijkstra para achar o menor caminho entre o nó inicial o e nó final (da estação de destino)
 
-Se estamos na estação final:
-    Se o custo total é menor do que lowest_cost_path:
-        lowest_cost <- custo total
-        lowest_cost_path <- caminho
-    Termine
-
-Para cada edge (conexão) que começa do nó corrente e não está no caminho:
-    Se for uma transferência entre ônibuses:
-        adicione 1 ao custo
-        nó corrente <- conexão.destino
-        inicie outra recursão
-
-    Se for uma transferência entre um trem para um ônibus:
-        adicione 1 ao custo
-        nó corrente <- conexão.destino
-        inicie outra recursão
-
-    Se for uma mudança de zona numa lina de trem:
-        adicione 4 ao custo
-        nó corrente <- conexão.destino
-        inicie outra recursão
-
-    Se não for nenhum desses:
-        nó corrente <- conexão.destino
-        inicie outra recursão
-
-No final de toda recursão o lowest_cost será o menor custo e o lowest_cost_path será o menor caminho
-```
+## Tempos de execução
+| Z  | S   | T  | B  | X  | Y   | time    |
+|----|-----|----|----|----|-----|---------|
+| 2  | 100 | 50 | 50 | 1  | 100 | 2.21 ms |
+| 10 | 100 | 5  | 50 | 71 | 95  | 240 ms  |
+| 30 | 100 | 50 | 50 | 1  | 100 | 7945 ms |

@@ -3,6 +3,7 @@ import sys
 import collections
 import math
 from enum import Enum
+from datetime import datetime, timedelta
 
 
 class Transport(Enum):
@@ -14,7 +15,6 @@ class Transport(Enum):
 
 
 class Graph:
-
     def __init__(self, zones, stations):
         self.zones = zones
         self.stations = stations
@@ -22,7 +22,6 @@ class Graph:
 
 
 class Node:
-
     def __init__(self, station, zone):
         self.station = station
         self.zone = zone
@@ -30,7 +29,6 @@ class Node:
 
 
 class Edge:
-
     def __init__(self, to, cost, transport, line):
         self.to = to
         self.cost = cost
@@ -39,7 +37,8 @@ class Edge:
 
 
 # calculates the total cost due to zone changes between two train stations
-def zone_change_cost(graph, route, start, end):
+def zone_change_cost(graph, route, start, end, route_id):
+    # reverse start and end if end index is bigger
     if (start > end):
         tmp = start
         start = end
@@ -57,7 +56,6 @@ def zone_change_cost(graph, route, start, end):
 
 # interprets the input and builds the graph
 def read_input():
-
     # ignore whitespace lines
     first_line = sys.stdin.readline()
     while first_line.strip() is "":
@@ -79,7 +77,7 @@ def read_input():
     # number of train and buses routes
     T, B = [int(x) for x in str.split(sys.stdin.readline())]
 
-    # train routes
+    # for each train route
     for t in range(T):
         route = [int(x) - 1 for x in str.split(sys.stdin.readline())[1:]]
         # add an edge for each pair of stations
@@ -88,13 +86,13 @@ def read_input():
                 if i != j:
                     node_from = graph.nodes[route[i]]
                     node_to = graph.nodes[route[j]]
-                    cost = zone_change_cost(graph, route, i, j)
-                    node_from.edges.add(
-                        Edge(node_to, cost, Transport.train, t))
-                    node_to.edges.add(
-                        Edge(node_from, cost, Transport.train, t))
+                    cost = zone_change_cost(graph, route, i, j, t)
+                    node_from.edges.add(Edge(node_to, cost, Transport.train,
+                                             t))
+                    node_to.edges.add(Edge(node_from, cost, Transport.train,
+                                           t))
 
-    # bus routes
+    # for each bus route
     for b in range(B):
         route = [int(x) - 1 for x in str.split(sys.stdin.readline())[1:]]
         # add an edge for each pair of stations
@@ -113,7 +111,7 @@ def read_input():
     return graph
 
 
-def dijkstra(graph, source):
+def dijkstra(graph, source, end):
     costs = dict()
     previous = dict()
     edges = dict()
@@ -135,7 +133,7 @@ def dijkstra(graph, source):
                 elif costs[node] < costs[min_node]:
                     min_node = node
 
-        if min_node is None:
+        if min_node is None or min_node is end:
             break
 
         nodes.remove(min_node)
@@ -154,7 +152,7 @@ def dijkstra(graph, source):
 
 # backtracks dijkstra's output and returns the cheapest path
 def cheapest_path(graph, a, b):
-    previous, edges = dijkstra(graph, a)
+    previous, edges = dijkstra(graph, a, b)
     steps = []
     node = b
     while previous[node]:
@@ -162,17 +160,28 @@ def cheapest_path(graph, a, b):
         node = previous[node]
     return reversed(steps)
 
+
+time = True
+if time:
+    start = datetime.now()
 graph = read_input()
 while (graph):
+    # starting cost
     cost = 2
-    steps = cheapest_path(
-        graph, graph.nodes[graph.start], graph.nodes[graph.end])
+    steps = cheapest_path(graph, graph.nodes[graph.start],
+                          graph.nodes[graph.end])
     print("Passageiro iniciou sua viagem pela estação {} da zona {}".format(
         graph.start + 1, graph.nodes[graph.start].zone + 1))
     for step in steps:
         print("Chegou na estação {} da zona {} de {} pela linha {}".format(
-            step[0].station + 1, step[0].zone + 1,
-            step[1].transport.to_string(), step[1].line + 1))
+            step[0].station + 1, step[0].zone + 1, step[1].transport.to_string(
+            ), step[1].line + 1))
         cost += step[1].cost
     print("Custo total: {} UTs".format(cost))
+
+    if time:
+        end = datetime.now()
+        print("Took {} ms".format((end - start).total_seconds() * 1000))
+        start = datetime.now()
+
     graph = read_input()
